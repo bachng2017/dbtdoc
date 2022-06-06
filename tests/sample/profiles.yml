@@ -1,0 +1,16 @@
+config:
+  send_anonymous_usage_stats: false
+  partial_parse: false
+ 
+test:
+  target: test
+  outputs:
+    test:
+      type: devnull
+      schema: test
+      database: test
+      username: user
+      password: password
+      host: localhost
+      threads: 1
+

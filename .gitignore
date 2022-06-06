@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# wheel
+build/
+dist/
+dbtdoc.egg-info/
+
+# dbt
+target/
+logs/
+dbt_packages/
+.user.yml
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# python
+venv/
+.venv/
+.env
+
+# gitlab
+.cache/
