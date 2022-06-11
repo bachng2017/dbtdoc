@@ -49,16 +49,16 @@ docs:
 */
 ~~~
 
-### Execution
-Execute `dbtdoc` from a dbt project
+### Usage
+Default syntax is below: 
 ```
-dbtdoc .
+dbtdoc [-h] [-b] [-d DOC] [-o] [-s SCHEMA] dbt_dir
 ```
 
-for each folder under `macros` and `tests` folder, 2 files `dbt_schema.yml` and `docs.md` will be created.
-`dbt docs generate` command will utilizes those files to create the final document as ususal.
+By default `dbtdoc` will scan the `dbt_dir` and all of its sub-folder for sql file, creates 2 file `dbt_schema.yml` and `docs.md` for each folder (the names of the file could be changed by .dbtdoc)
+In case `dbtdoc` found a `dbt_project.yml` in the target folder, it will only scan the folders defined by `models-path` and `macros-path` from the file
 
-
+Paramaeter `-o` is used to limit `dbtdoc` only process on the target `dbt_dir` only but ignore its sub-folder.
 
 
 ## Configuration

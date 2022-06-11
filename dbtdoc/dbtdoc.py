@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-import argparse, datetime, logging, os, sys
+import argparse, datetime, logging, os, sys, glob
 from collections import defaultdict
-# from collections import OrderedDict
 
 from textwrap import indent
 import yaml,re,os.path
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 COMMAND = "dbtdoc"
 DBT_BLOCK_START_KEY = "```dbt"
@@ -16,11 +15,21 @@ SCHEMA_FILE = "dbt_schema.yml"
 DOC_FILE = "docs.md"
 QUOTE_STRING = True
 
+from logging import getLogger, StreamHandler, Formatter
+LOGGER = getLogger(__name__)
+LOGGER.setLevel(logging.ERROR) # only display errors
+stream_handler = StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+handler_format = Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+stream_handler.setFormatter(handler_format)
+LOGGER.addHandler(stream_handler)
+
+
 class Dumper(yaml.Dumper):
     """ A workaround to indent list more friendly
         See https://github.com/yaml/pyyaml/issues/234 for details
     """
-    def increase_indent(self, flow=False, *args, **kwargs):
+    def increase_indent(self, flow=False, *ARGS, **kwARGS):
         return super().increase_indent(flow=flow, indentless=False)
 
 class quoted(str):
@@ -43,15 +52,16 @@ yaml.add_representer(str, _represent_str)
 
 
 def _get_dirs(dbt_dir):
-    """ Return the value of `model-paths` and `macro-path`
+    """ Return the value of `model-paths` and `macro-path`from dbt_project.yml
     """
     dbt_project_file = os.path.join(dbt_dir, "dbt_project.yml")
     if not os.path.isfile(dbt_project_file):
-        print("dbt_project.yml not found in {}".format(dbt_dir))
-        exit(1)
+        LOGGER.warning(f"dbt_project.yml not found in {dbt_dir}")
+        return [dbt_dir]
+
     with open(dbt_project_file, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    return config["model-paths"], config["macro-paths"]
+    return config["model-paths"] + config["macro-paths"]
 
 
 def _read_blocks(sql_file):
@@ -79,45 +89,6 @@ def _read_blocks(sql_file):
     return doc, dbt
 
 
-
-def _scan_models(models_dir):
-    """ local method to extract informatinon from each model dir
-    """
-    if not os.path.isdir(models_dir):
-        logger.warning("%s directory not found" % models_dir)
-        return
-
-    models_dirs = os.walk(models_dir)
-    for cdir, dirs, files in models_dirs:
-        # doc_blocks = OrderedDict()
-        # dbt_blocks = OrderedDict()
-        doc_blocks = {}
-        dbt_blocks = []
-        for fname in files:
-            # Parse the table name from the SQL file name
-            if fname[-3:] != "sql":
-                logger.info("Skipping non-sql file: " + fname)
-                continue
-            tname = fname[0:-4] # remove .sql from filename
-            a_doc, a_dbt= _read_blocks(os.path.join(cdir, fname))
-
-            # update doc block
-            if a_doc:
-                doc_blocks[tname] = a_doc
-                b = {}
-                b["name"] = quoted(tname)
-                b["description"] = quoted("{{ doc('%s') }}" % tname)
-
-                _quote_dict(a_dbt)
-                for key in (["columns","docs"]):
-                    if key in a_dbt:
-                        b[key] = a_dbt[key]
-                dbt_blocks.append(b)
-
-        # write to file
-        _write_property_yml(cdir, dbt_blocks, "models")
-        _write_doc_md(cdir, doc_blocks)
-
 def _quote_dict(d):
     """ Scan a dict and quote string
     """
@@ -132,23 +103,27 @@ def _quote_dict(d):
         if isinstance(v,str):
             d[k] = quoted(v)
 
-def _scan_macros(macros_dir):
-    """ Scan macro folder and collect resource information
+
+def _scan_comment(target_dir):
+    """ Scan 
 
     There are both `macro` and `test` inside.
+    A macro file could have multi macro inside
     """
-    if not os.path.isdir(macros_dir):
-        logger.warning("%s directory not found" % macros_dir)
+    LOGGER.info(f"Scan folder {target_dir} for macros")
+    if not os.path.isdir(target_dir):
+        LOGGER.warning("%s directory not found" % target_dir)
         return
 
-    macro_dirs = os.walk(macros_dir)
-    for cdir, dirs, files in macro_dirs:
+    target_dirs = os.walk(target_dir)
+    for cdir, dirs, files in target_dirs:
         doc_blocks = {}
         dbt_blocks = []
+        top_level = 'unknown'
         for fname in files:
             # Parse the table name from the SQL file name
             if fname[-3:] != "sql":
-                logger.info("Skipping non-sql file: " + fname)
+                LOGGER.info("Skipping non-sql file: " + fname)
                 continue
 
             with open(os.path.join(cdir, fname), 'r') as f:
@@ -157,125 +132,154 @@ def _scan_macros(macros_dir):
             # split into macro/test blocks
             # using a simple rule, need to be enhanced
             r = re.findall('(/\*.*?\*/.*? (?:macro|test|materialization) .*?end(?:macro|test|materialization) )', sql, re.DOTALL)
-            for block in r:
-                rr =  re.match('/\*.*?\*/.*? (macro|test|materialization) ([^ ]*?)(?:\(|, *adapter *= *(.*?) )', block, re.DOTALL)
-                # print(block)
-                # print("====")
-                keyword = rr.group(1).strip()
-                tname = rr.group(2).strip()
-                if rr.group(3):
-                    connector = rr.group(3).strip("\ \' \"")
-                else:
-                    connector = ""
-
-                doc_start = block.find("/*")
-                doc_end = block.find("*/")
-                a_doc = block[doc_start + 2:doc_end] if doc_start > -1 else ""
-
+            if len(r) == 0: # this is model file
+                a_doc = None
                 a_dbt = {}
-                if a_doc:
-                    dbt_start = a_doc.find(DBT_BLOCK_START_KEY)
-                    dbt_end = a_doc.find("```", dbt_start + len(DBT_BLOCK_START_KEY))
+                top_level = 'models'
+                pattern1 = '.*/\\*(.*?)```dbt(.*?)```.*\\*/'
+                pattern2 = '.*/\\*(.*?)\\*/'
+                rr = re.match(f"{pattern1}|{pattern2}", sql, re.DOTALL)
+                if rr and rr.group(3): # only pattern2
+                    a_doc = rr.group(3).strip()
+                    d_dbt = {}
+                elif rr:
+                    a_doc = rr.group(1).strip()
+                    a_dbt = yaml.load(rr.group(2).strip(), Loader=yaml.FullLoader)
+                else:
+                    a_doc = None
+                    a_dbt = {}
 
-                    if dbt_start > -1:
-                        dbt_block = a_doc[dbt_start + len(DBT_BLOCK_START_KEY):dbt_end]
-                        a_dbt = yaml.load(dbt_block, Loader=yaml.FullLoader)
-                    a_doc = a_doc[0:dbt_start].strip()
-
-                b = {}
-                if keyword == "materialization":
-                    b["name"] = quoted("materialization_" + tname + "_" + connector)
-                elif keyword == "test":
-                    b["name"] = quoted("test_" + tname)
-                elif keyword == "macro":
-                    b["name"] = quoted(tname)
-
-                # document block
+                tname = fname[0:-4] # remove .sql from filename
+                # update doc block
                 if a_doc:
                     doc_blocks[tname] = a_doc
+                    b = {}
+                    b["name"] = quoted(tname)
                     b["description"] = quoted("{{ doc('%s') }}" % tname)
 
-                # dbt yml block
-                if a_dbt:
                     _quote_dict(a_dbt)
-                    for key in (["arguments","docs"]):
+                    for key in (["columns","docs"]):
                         if key in a_dbt:
                             b[key] = a_dbt[key]
+                    dbt_blocks.append(b)
+            else:
+                top_level = 'macros'
+                for block in r:
+                    rr =  re.match('/\*.*?\*/.*? (macro|test|materialization) ([^ ]*?)(?:\(|, *adapter *= *(.*?) )', block, re.DOTALL)
+                    # print(block)
+                    # print("====")
+                    keyword = rr.group(1).strip()
+                    tname = rr.group(2).strip()
+                    if rr.group(3):
+                        connector = rr.group(3).strip("\ \' \"")
+                    else:
+                        connector = ""
 
-                dbt_blocks.append(b)
+                    doc_start = block.find("/*")
+                    doc_end = block.find("*/")
+                    a_doc = block[doc_start + 2:doc_end] if doc_start > -1 else ""
+
+                    a_dbt = {}
+                    if a_doc:
+                        dbt_start = a_doc.find(DBT_BLOCK_START_KEY)
+                        dbt_end = a_doc.find("```", dbt_start + len(DBT_BLOCK_START_KEY))
+
+                        if dbt_start > -1:
+                            dbt_block = a_doc[dbt_start + len(DBT_BLOCK_START_KEY):dbt_end]
+                            a_dbt = yaml.load(dbt_block, Loader=yaml.FullLoader)
+                        a_doc = a_doc[0:dbt_start].strip()
+
+                    b = {}
+                    if keyword == "materialization":
+                        b["name"] = quoted("materialization_" + tname + "_" + connector)
+                    elif keyword == "test":
+                        b["name"] = quoted("test_" + tname)
+                    elif keyword == "macro":
+                        b["name"] = quoted(tname)
+
+                    # document block
+                    if a_doc:
+                        doc_blocks[tname] = a_doc
+                        b["description"] = quoted("{{ doc('%s') }}" % tname)
+
+                    # dbt yml block
+                    if a_dbt:
+                        _quote_dict(a_dbt)
+                        for key in (["arguments","docs"]):
+                            if key in a_dbt:
+                                b[key] = a_dbt[key]
+
+                    dbt_blocks.append(b)
 
         # write to file
-        _write_property_yml(cdir, dbt_blocks, "macros")
+        _write_property_yml(cdir, dbt_blocks, top_level)
         _write_doc_md(cdir, doc_blocks)
 
+        # only do once
+        if ARGS.only: break
 
 
 def _write_property_yml(resource_dir, dbt_blocks, keyword="models"):
     """ write to property file, default is dbt_schema.yaml
         keyword is `models` or `macros`
     """
-    if args.schema:
-        property_file = args.schema
+    if ARGS.schema:
+        property_file = ARGS.schema
     else:
-        property_file = os.path.join(args.dbt_dir, resource_dir, SCHEMA_FILE)
+        property_file = os.path.join(resource_dir, SCHEMA_FILE)
 
-    if args.backup and os.path.isfile(property_file):
+    if ARGS.backup and os.path.isfile(property_file):
         os.rename(property_file, property_file[:len(property_file) - 4] + "_" +
                   datetime.datetime.now().isoformat().replace(":", "-") +
                   ".yml_")
+
+    if not dbt_blocks:
+        LOGGER.info(f"There is no properties to write to {property_file}")
+        return
+    LOGGER.info(f"Write out property file: {property_file}")
 
     with open(property_file, "w") as f:
         f.write("""# This file was auto-generated by dbtdocstr.
 # Don't manually update.
 ---
 """)
-        if not dbt_blocks:
-            return
         f.write(f"version: 2\n{keyword}:\n")
         f.write(indent(yaml.dump(dbt_blocks, Dumper=Dumper, allow_unicode=True, sort_keys=False), " " * 2) )
+    print(f"Wrote file {property_file}")
 
 
 def _write_doc_md(resource_dir, doc_blocks):
     """ write to doc file, default is docs.md
     """
-    if args.doc:
-        doc_file = args.doc
+    if ARGS.doc:
+        doc_file = ARGS.doc
     else:
-        doc_file = os.path.join(args.dbt_dir, resource_dir, DOC_FILE)
+        doc_file = os.path.join(resource_dir, DOC_FILE)
 
-    if args.backup and os.path.isfile(doc_file):
+    if ARGS.backup and os.path.isfile(doc_file):
         os.rename(doc_file, doc_file[:len(doc_file) - 3] + "_" +
                   datetime.datetime.now().isoformat().replace(":", "-") +
                   ".md_")
+
+    if not doc_blocks:
+        LOGGER.info(f"There is no document to write to {doc_file}")
+        return
+    LOGGER.info(f"Write out doc file: {doc_file}")
 
     with open(doc_file, "w") as f:
         f.write("""# This file was auto-generated by dbtdocstr.
 # Don't manually update.
 """)
-        if not doc_blocks:
-            return
         for key in doc_blocks:
             f.write("{%% docs %s %%}\n" % key)
             f.write(doc_blocks[key] + "\n")
             f.write("{% enddocs %}\n\n")
+    print(f"Wrote file {doc_file}")
 
 
-def _run():
-    dbt_dir = args.dbt_dir
-    models_dirs, macro_dirs = _get_dirs(dbt_dir)
-
-    for models_dir in models_dirs:
-        _scan_models(os.path.join(dbt_dir, models_dir))
-
-    for macro_dir in macro_dirs:
-        _scan_macros(os.path.join(dbt_dir, macro_dir))
-
-
-args = {}
 def read_conf():
     """ Read configuration from .dbtdoc if exits
     """
-    # FOLDER = os.path.dirname(__file__)
     # try to get config file in current folder
     FOLDER = os.path.abspath(os.getcwd())
     CONFIG_FILE = FOLDER + "/" + ".dbtdoc"
@@ -306,8 +310,40 @@ def read_conf():
     else:
         yaml.add_representer(quoted, _represent_str)
 
+
+def _clean(target_folder):
+    """ Deleted dbtdoc file in `target_folder`
+    """
+    walk = os.walk(target_folder)
+    for cdir, _, files in walk:
+        delete_flag = False
+        for item in [SCHEMA_FILE, DOC_FILE] :
+            file_path = os.path.join(cdir, item)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                delete_flag = True
+        if delete_flag:
+            print(f"Removed dbtdoc files in {cdir}")
+
+
+def _run():
+    dbt_dir = ARGS.dbt_dir
+    print(f"Run {COMMAND} in {dbt_dir}")
+
+    if ARGS.clear:
+        _clean(dbt_dir)
+    else:
+        dirs = _get_dirs(dbt_dir)
+        LOGGER.info(dirs)
+        for d in dirs:
+            # _scan_models(d)
+            # _scan_macros(d)
+            _scan_comment(d)
+
+
+ARGS = {}
 def main():
-    global args
+    global ARGS
     """
     Entry point
     """
@@ -328,15 +364,32 @@ def main():
     parser.add_argument(
         "-d","--doc",
         type=str,
-        help="output doc file"
+        help="output doc filename"
+    )
+    parser.add_argument(
+        "-o","--only",
+        action="store_true",
+        help="only process target folder only"
     )
     parser.add_argument(
         "-s","--schema",
         type=str,
-        help="output schema file"
+        help="output schema filename"
+    )
+    parser.add_argument(
+        "-c","--clear",
+        action="store_true",
+        help="cleanup dbtdoc files"
+    )
+    parser.add_argument(
+        "-D","--debug",
+        type=str,
+        help="debug level: DEBUG/INFO/WARN/ERROR. Default is ERROR"
     )
 
-    args = parser.parse_args()
+    ARGS = parser.parse_args()
+    if ARGS.debug:
+        LOGGER.setLevel(getattr(logging, ARGS.debug))
     _run()
 
 

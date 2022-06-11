@@ -3,11 +3,11 @@
 ---
 version: 2
 models:
-  - name: "my_first_dbt_model"
-    description: "{{ doc('my_first_dbt_model') }}"
+  - name: "model02"
+    description: "{{ doc('model02') }}"
+  - name: "model01"
+    description: "{{ doc('model01') }}"
     columns:
       - name: "id"
         type: "integer"
         description: "the only column"
-  - name: "my_second_dbt_model"
-    description: "{{ doc('my_second_dbt_model') }}"

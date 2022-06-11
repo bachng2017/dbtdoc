@@ -4,5 +4,5 @@
 The second model has no document for column
 */
 select *
-from {{ ref('my_first_dbt_model') }}
+from {{ ref('model01') }}
 where id = 1
