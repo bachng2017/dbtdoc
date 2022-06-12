@@ -10,6 +10,14 @@ columns:
   - name: id
     type: integer
     description: the only column
+    tests:
+      - unique
+      - test01:
+          - arg01: xxx
+          - arg02: 3
+      - test02:
+          - xxx
+          - yyy
 ```
 */
 

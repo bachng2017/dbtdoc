@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.0.8
+- fix #2 to quote list correcly
+
 # 0.0.7
 - enhance scan logic
 - add .dbtdoc configuration file

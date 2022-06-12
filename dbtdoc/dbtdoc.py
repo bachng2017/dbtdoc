@@ -33,6 +33,8 @@ class Dumper(yaml.Dumper):
         return super().increase_indent(flow=flow, indentless=False)
 
 class quoted(str):
+    """ a dummy class mark an item that need to be quoted
+    """
     pass
 
 
@@ -89,23 +91,28 @@ def _read_blocks(sql_file):
     return doc, dbt
 
 
-def _quote_dict(d):
-    """ Scan a dict and quote string
+def _quote_item(d):
+    """ Scan an item and quote string if it is necessary
     """
-    if not d: return
-    if not isinstance(d,dict): return
-    for k,v in d.items():
-        if isinstance(v,list):
-            for i in v:
-                _quote_dict(i)
-        if isinstance(v,dict):
-            _quote_dict(v)
-        if isinstance(v,str):
-            d[k] = quoted(v)
+    if d is None:
+        return None
+
+    if isinstance(d, str):
+        return quoted(d)
+
+    if isinstance(d, dict):
+        for k,v in d.items():
+            d[k] = _quote_item(v)
+        return d
+
+    if isinstance(d,list):
+        return list(map(lambda n: _quote_item(n), d))
+
+    return d
 
 
 def _scan_comment(target_dir):
-    """ Scan 
+    """ Scan comment in  sql files
 
     There are both `macro` and `test` inside.
     A macro file could have multi macro inside
@@ -157,10 +164,11 @@ def _scan_comment(target_dir):
                     b["name"] = quoted(tname)
                     b["description"] = quoted("{{ doc('%s') }}" % tname)
 
-                    _quote_dict(a_dbt)
-                    for key in (["columns","docs"]):
-                        if key in a_dbt:
-                            b[key] = a_dbt[key]
+                    if a_dbt:
+                        for key in (["columns","docs"]):
+                            if key in a_dbt:
+                                b[key] =_quote_item(a_dbt[key])
+
                     dbt_blocks.append(b)
             else:
                 top_level = 'macros'
@@ -204,7 +212,7 @@ def _scan_comment(target_dir):
 
                     # dbt yml block
                     if a_dbt:
-                        _quote_dict(a_dbt)
+                        a_dbt = _quote_item(a_dbt)
                         for key in (["arguments","docs"]):
                             if key in a_dbt:
                                 b[key] = a_dbt[key]
