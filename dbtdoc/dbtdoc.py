@@ -288,25 +288,24 @@ def _write_doc_md(resource_dir, doc_blocks):
 def read_conf():
     """ Read configuration from .dbtdoc if exits
     """
+    global SCHEMA_FILE, DOC_FILE, QUOTE_STRING
     # try to get config file in current folder
-    FOLDER = os.path.abspath(os.getcwd())
-    CONFIG_FILE = FOLDER + "/" + ".dbtdoc"
-    if not os.path.exists(CONFIG_FILE):
-        # print("config file not found")
-        return
-    config = {}
-    with open(CONFIG_FILE, "r") as f:
-        config = yaml.safe_load(f)
+    folder = os.path.abspath(os.getcwd())
+    config_file = folder + "/" + ".dbtdoc"
+    if os.path.exists(config_file):
+        config = {}
+        with open(config_file, "r") as f:
+            config = yaml.safe_load(f)
 
-    if not config:
-        return
+        if not config:
+            return
 
-    if "schema_file" in config:
-        SCHEMA_FILE = config["schema_file"]
-    if "doc_file" in config:
-        DOC_FILE = config["doc_file"]
-    if "quote_string" in config:
-        QUOTE_STRING = config["quote_string"]
+        if "schema_file" in config:
+            SCHEMA_FILE = config["schema_file"]
+        if "doc_file" in config:
+            DOC_FILE = config["doc_file"]
+        if "quote_string" in config:
+            QUOTE_STRING = config["quote_string"]
 
     # debug
     # print(f"SCHEMA_FILE={SCHEMA_FILE}")
