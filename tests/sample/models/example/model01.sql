@@ -12,12 +12,7 @@ columns:
     description: the only column
     tests:
       - unique
-      - test01:
-          - arg01: xxx
-          - arg02: 3
-      - test02:
-          - xxx
-          - yyy
+      - not_null
 ```
 */
 
