@@ -3,7 +3,7 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-VERSION = "0.0.8"
+VERSION = "0.0.9"
 
 here = path.abspath(path.dirname(__file__))
 
