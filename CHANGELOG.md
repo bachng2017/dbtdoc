@@ -1,5 +1,10 @@
 # Changelog
 
+
+# 0.0.10
+- fix errors
+- add -S parameter to create model property file separately
+
 # 0.0.8
 - fix #2 to quote list correcly
 

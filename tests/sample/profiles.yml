@@ -1,7 +1,7 @@
+---
 config:
   send_anonymous_usage_stats: false
   partial_parse: false
- 
 test:
   target: test
   outputs:
@@ -13,4 +13,3 @@ test:
       password: password
       host: localhost
       threads: 1
-

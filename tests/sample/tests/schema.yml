@@ -3,4 +3,3 @@ version: 2
 tests:
   - name: a_test
     description: this is a test
-

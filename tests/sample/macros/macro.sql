@@ -1,5 +1,5 @@
 /*
-The only one macro
+The first macro
 ```dbt
 arguments:
   - name: alias
@@ -7,8 +7,19 @@ arguments:
     description: an alias
 ```
 */
-{%- macro one_macro(alias) -%}
+{%- macro macro_one(alias) -%}
 select 1 as {{ alias }}
 {%- endmacro -%}
 
+/*
+The second macro
+*/
+{%- macro macro_two(alias) -%}
+select 1 as {{ alias }}
+{%- endmacro -%}
+
+
+{%- macro macro_no_comment() -%}
+select 1 as id
+{%- endmacro -%}
 

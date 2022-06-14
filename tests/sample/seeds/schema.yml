@@ -3,4 +3,3 @@ version: 2
 seeds:
   - name: a_seed
     description: this is a seed
-
