@@ -65,8 +65,14 @@ def _get_dirs(dbt_dir):
         LOGGER.warning(f"dbt_project.yml not found in {dbt_dir}")
         return [dbt_dir]
 
-    with open(dbt_project_file, "r") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
+    try:
+        with open(dbt_project_file, "r") as f:
+            # config = yaml.safe(f, Loader=yaml.FullLoader)
+            config = yaml.safe_load(f)
+    except Exception as e:
+        LOGGER.error(f"invalid project file in {dbt_dir}")
+        exit(1)
+
     return config["model-paths"] + config["macro-paths"]
 
 
@@ -89,7 +95,13 @@ def _read_blocks(sql_file):
 
         if dbt_start > -1:
             dbt_block = doc[dbt_start + len(DBT_BLOCK_START_KEY):dbt_end]
-            dbt = yaml.load(dbt_block, Loader=yaml.FullLoader)
+            try:
+                dbt = yaml.load(dbt_block, Loader=yaml.FullLoader)
+                dbt = yaml.safe_load(dbt_block)
+            except Exception as e:
+                LOGGER.error(f"invalid dbt block in {sql_file}")
+                LOGGER.debug(dbt_block)
+
         doc = doc[0:dbt_start].strip()
 
     return doc, dbt
@@ -137,7 +149,8 @@ def _scan_comment(target_dir):
                 LOGGER.info("Skipping non-sql file: " + fname)
                 continue
 
-            with open(os.path.join(cdir, fname), 'r') as f:
+            sql_file = os.path.join(cdir, fname)
+            with open(sql_file, 'r') as f:
                 sql = f.read()
 
             # split into macro/test blocks
@@ -155,7 +168,14 @@ def _scan_comment(target_dir):
                     d_dbt = {}
                 elif rr:
                     a_doc = rr.group(1).strip()
-                    a_dbt = yaml.load(rr.group(2).strip(), Loader=yaml.FullLoader)
+                    try:
+                        # a_dbt = yaml.load(rr.group(2).strip(), Loader=yaml.FullLoader)
+                        a_dbt = yaml.safe_load(rr.group(2).strip())
+                    except Exception as e:
+                        LOGGER.error(f"invalid dbt block in {sql_file}")
+                        LOGGER.debug(e)
+                        LOGGER.debug(rr.group(2).strip())
+                        exit(1)
                 else:
                     a_doc = None
                     a_dbt = {}
@@ -175,11 +195,10 @@ def _scan_comment(target_dir):
 
                     dbt_blocks.append(b)
             else:
+                # macro type
                 top_level = 'macros'
                 for block in r:
                     rr =  re.match('/\*.*?\*/.*? (macro|test|materialization) ([^ ]*?)(?:\(|, *adapter *= *(.*?) )', block, re.DOTALL)
-                    # print(block)
-                    # print("====")
                     keyword = rr.group(1).strip()
                     tname = rr.group(2).strip()
                     if rr.group(3):
@@ -198,7 +217,14 @@ def _scan_comment(target_dir):
 
                         if dbt_start > -1:
                             dbt_block = a_doc[dbt_start + len(DBT_BLOCK_START_KEY):dbt_end]
-                            a_dbt = yaml.load(dbt_block, Loader=yaml.FullLoader)
+                            try:
+                                # a_dbt = yaml.safe(dbt_block, Loader=yaml.FullLoader)
+                                a_dbt = yaml.safe_load(dbt_block)
+                            except Exception as e:
+                                LOGGER.error(f"invalid dbt block in {sql_file}")
+                                LOGGER.debug(dbt_block)
+                                exit(1)
+
                         a_doc = a_doc[0:dbt_start].strip()
 
                     b = {}
