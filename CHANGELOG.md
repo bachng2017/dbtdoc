@@ -1,5 +1,7 @@
 # Changelog
 
+# 0.0.12
+- recoginize `tests` block for models
 
 # 0.0.10
 - fix errors

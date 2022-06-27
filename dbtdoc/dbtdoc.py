@@ -189,7 +189,7 @@ def _scan_comment(target_dir):
                     b["description"] = quoted("{{ doc('%s') }}" % tname)
 
                     if a_dbt:
-                        for key in (["columns","docs"]):
+                        for key in (["columns","docs", "tests"]):
                             if key in a_dbt:
                                 b[key] =_quote_item(a_dbt[key])
 
