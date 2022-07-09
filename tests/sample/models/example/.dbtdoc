@@ -1,0 +1,2 @@
+schema_file: "dbt_schema.yml"
+quote_string: false

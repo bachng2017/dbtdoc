@@ -62,11 +62,18 @@ Paramaeter `-o` is used to limit `dbtdoc` only process on the target `dbt_dir` o
 
 
 ## Configuration
-Configuration file `.dbtodoc` is searched in current folder. A typical configuration file looks like this:
+Configuration file `.dbtdoc` is searched in current folder. A typical configuration file looks like this:
 ```.dbtdoc
 schema_file: "dbt_schema.yml"
 doc_file: "docs.md"
 quote_string: true
+```
+
+If the configuration does not exists, default values are used.
+```
+SCHEMA_FILE = "dbt_schema.yml"
+DOC_FILE = "docs.md"
+QUOTE_STRING = False
 ```
 
 ## Other
