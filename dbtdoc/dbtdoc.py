@@ -288,7 +288,7 @@ def _write_property_yml(resource_dir, dbt_blocks, keyword="models"):
             f.write(DBTDOC_HEADER)
             f.write(f"version: 2\n{keyword}:\n")
             f.write(indent(yaml.dump(dbt_blocks, Dumper=Dumper, allow_unicode=True, sort_keys=False), " " * 2) )
-        print(f"Wrote file {property_file}")
+        print(f"wrote file {property_file}")
     else:
         # seperate mode
         for item in dbt_blocks:
@@ -297,7 +297,7 @@ def _write_property_yml(resource_dir, dbt_blocks, keyword="models"):
                 f.write(DBTDOC_HEADER)
                 f.write(f"version: 2\n{keyword}:\n")
                 f.write(indent(yaml.dump([item], Dumper=Dumper, allow_unicode=True, sort_keys=False), " " * 2) )
-            print(f"Wrote file {property_file}")
+            print(f"wrote file {property_file}")
 
 
 def _write_doc_md(resource_dir, doc_blocks, keyword):
@@ -404,13 +404,15 @@ def _run():
 
     if ARGS.clear:
         _clear(dbt_dir)
-    else:
-        dirs = _get_dirs(dbt_dir)
-        LOGGER.info(dirs)
-        for d in dirs:
-            # _scan_models(d)
-            # _scan_macros(d)
-            _scan_comment(d)
+        exit(0)
+
+    if ARGS.update:
+        _clear(dbt_dir)
+
+    dirs = _get_dirs(dbt_dir)
+    LOGGER.info(dirs)
+    for d in dirs:
+        _scan_comment(d)
 
 
 ARGS = {}
@@ -442,6 +444,11 @@ def main():
         "-d","--doc",
         type=str,
         help="output doc filename"
+    )
+    parser.add_argument(
+        "-u","--update",
+        action="store_true",
+        help="remove and re-create document"
     )
     parser.add_argument(
         "-o","--only",
