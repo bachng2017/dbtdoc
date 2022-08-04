@@ -60,6 +60,8 @@ In case `dbtdoc` found a `dbt_project.yml` in the target folder, it will only sc
 
 Paramaeter `-o` is used to limit `dbtdoc` only process on the target `dbt_dir` only but ignore its sub-folder.
 
+Note: when error happens, use the command with `-D DEBUG` for more details about the errors.
+
 
 ## Configuration
 Configuration file `.dbtdoc` is searched in current folder. A typical configuration file looks like this:
