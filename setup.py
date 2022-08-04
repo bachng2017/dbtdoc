@@ -3,17 +3,16 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-VERSION = "0.1.1"
+from dbtdoc import _version
 
 here = path.abspath(path.dirname(__file__))
-
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup (
     name='dbtdoc',
     packages=['dbtdoc'],
-    version=VERSION,
+    version=_version.__version__,
     license='Apache',
     install_requires=[
         "setuptools>=40.3.0",

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import argparse, datetime, logging, os, sys, glob
 from collections import defaultdict
+from os import path
 
 from textwrap import indent
 import yaml,re,os.path
 from pathlib import Path
+from dbtdoc._version import __version__
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +21,7 @@ DBTDOC_HEADER = """---
 DF_SCHEMA_FILE = "dbt_schema.yml"
 DF_DOC_FILE = "docs.md"
 DF_QUOTE_STRING = False
+
 
 # global variable
 SCHEMA_FILE = DF_SCHEMA_FILE
@@ -196,7 +199,7 @@ def _scan_comment(target_dir):
                     b["description"] = quoted("{{ doc('%s') }}" % tname)
 
                     if a_dbt:
-                        for key in (["columns","docs", "tests"]):
+                        for key in (["columns","docs", "tests", "config"]):
                             if key in a_dbt:
                                 b[key] =_quote_item(a_dbt[key])
 
@@ -325,7 +328,7 @@ def _write_doc_md(resource_dir, doc_blocks, keyword):
                 f.write("{%% docs %s %%}\n" % key)
                 f.write(doc_blocks[key] + "\n")
                 f.write("{% enddocs %}\n\n")
-        print(f"Wrote file {doc_file}")
+        print(f"wrote file {doc_file}")
     else:
         # separate mode
         for key in doc_blocks:
@@ -335,7 +338,7 @@ def _write_doc_md(resource_dir, doc_blocks, keyword):
                 f.write("{%% docs %s %%}\n" % key)
                 f.write(doc_blocks[key] + "\n")
                 f.write("{% enddocs %}\n\n")
-            print(f"Wrote file {doc_file}")
+            print(f"wrote file {doc_file}")
 
 
 def read_conf(folder):
@@ -418,14 +421,14 @@ def _run():
 ARGS = {}
 def main():
     global ARGS
-    """
-    Entry point
-    """
-    ### config
-    # read_conf()
 
     parser = argparse.ArgumentParser(COMMAND)
 
+    parser.add_argument(
+        "-v","--version",
+        action="version",
+        version=__version__
+    )
     parser.add_argument(
         "dbt_dir",
         type=str,
