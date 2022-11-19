@@ -165,8 +165,11 @@ def _scan_comment(target_dir):
 
             # split into macro/test blocks
             # using a simple rule, need to be enhanced
-            r = re.findall('(/\*.*?\*/.*? (?:macro|test|materialization) .*?end(?:macro|test|materialization) )', sql, re.DOTALL)
-            if len(r) == 0: # this is model file
+            # r = re.findall('((?:/\*.*?\*/)*?.*?(?:macro|test|materialization) .*?end(?:macro|test|materialization))', sql, re.DOTALL)
+            r = re.findall('((?:/\*.*?\*/)*.+?(?:macro|test|materialization) .*?end(?:macro|test|materialization))', sql, re.DOTALL)
+            if len(r) == 0:
+            # if r is None: # this is model file
+                LOGGER.debug(f"found model sql: {sql_file}")
                 a_doc = None
                 a_dbt = {}
                 top_level = 'models'
@@ -206,9 +209,12 @@ def _scan_comment(target_dir):
                     dbt_blocks.append(b)
             else:
                 # macro type
+                LOGGER.debug(f"found macro sql {sql_file}")
                 top_level = 'macros'
+                # macro files could contains multi macro definitions. Scan all
+                # of them
                 for block in r:
-                    rr =  re.match('/\*.*?\*/.*? (macro|test|materialization) ([^ ]*?)(?:\(|, *adapter *= *(.*?) )', block, re.DOTALL)
+                    rr =  re.match('(?:/\*.*?\*/)*.+? (macro|test|materialization) ([^ ]*?)(?:\(|, *adapter *= *(.*?))', block, re.DOTALL)
                     keyword = rr.group(1).strip()
                     tname = rr.group(2).strip()
                     if rr.group(3):

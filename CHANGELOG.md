@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.3
+- update model/maco determine logic
+
 ## 0.1.2
 - add support for `config` block insides `model`
 
