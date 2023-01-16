@@ -214,7 +214,7 @@ def _scan_comment(target_dir):
                 # macro files could contains multi macro definitions. Scan all
                 # of them
                 for block in r:
-                    rr =  re.match('(?:/\*.*?\*/)*.+? (macro|test|materialization) ([^ ]*?)(?:\(|, *adapter *= *(.*?))', block, re.DOTALL)
+                    rr =  re.match('(?:/\*.*?\*/)*.+? (macro|test|materialization) ([^ ]*?)(?:\(|, *adapter *= *(.*?) )', block, re.DOTALL)
                     keyword = rr.group(1).strip()
                     tname = rr.group(2).strip()
                     if rr.group(3):
