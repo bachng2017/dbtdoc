@@ -266,8 +266,13 @@ def _scan_comment(target_dir):
                     dbt_blocks.append(b)
 
         # write to file
-        _write_property_yml(cdir, dbt_blocks, top_level)
-        _write_doc_md(cdir, doc_blocks, top_level)
+        if ARGS.target:
+            target = ARGS.target
+        else:
+            target = cdir
+        LOGGER.debug(f"write to folder {target}")
+        _write_property_yml(target, dbt_blocks, top_level)
+        _write_doc_md(target, doc_blocks, top_level)
 
         # only do once
         if ARGS.only: break
@@ -478,6 +483,11 @@ def main():
         "-D","--debug",
         type=str,
         help="set debug level (DEBUG/INFO/WARN/ERROR). Default is ERROR"
+    )
+    parser.add_argument(
+        "-T","--target",
+        type=str,
+        help="doc and property directory, combined with -S option"
     )
 
     ARGS = parser.parse_args()
