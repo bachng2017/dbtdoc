@@ -78,11 +78,22 @@ def _get_dirs(dbt_dir):
         with open(dbt_project_file, "r") as f:
             # config = yaml.safe(f, Loader=yaml.FullLoader)
             config = yaml.safe_load(f)
+            result = []
+
+            if "model-paths" in config:
+                result += config["model-paths"]
+            else:
+                result += ["models"]
+
+            if "macro-paths" in config:
+                result += config["macro-paths"]
+            else:
+                result += ["macros"]
     except Exception as e:
         LOGGER.error(f"invalid project file in {dbt_dir}")
         exit(1)
 
-    return config["model-paths"] + config["macro-paths"]
+    return result
 
 
 def _read_blocks(sql_file):
