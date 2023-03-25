@@ -52,7 +52,7 @@ docs:
 ### Usage
 Default syntax is below: 
 ```
-dbtdoc [-h] [-b] [-d DOC] [-o] [-s SCHEMA] dbt_dir
+dbtdoc [-h] [-v] [-c] [-b] [-d DOC] [-u] [-o] [-p PREFIX] [-s SCHEMA] [-S] [-D DEBUG] [-T TARGET] dbt_dir
 ```
 
 By default `dbtdoc` will scan the `dbt_dir` and all of its sub-folder for sql file, creates 2 file `dbt_schema.yml` and `docs.md` for each folder (the names of the file could be changed by .dbtdoc)

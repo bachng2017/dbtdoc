@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.1.6
+- add -p/--prefix option to add a prefix for output files
 
 ## 0.1.5
 - add -T option to collect output files into one place

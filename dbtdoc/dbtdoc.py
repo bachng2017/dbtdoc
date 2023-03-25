@@ -22,7 +22,6 @@ DF_SCHEMA_FILE = "dbt_schema.yml"
 DF_DOC_FILE = "docs.md"
 DF_QUOTE_STRING = False
 
-
 # global variable
 SCHEMA_FILE = DF_SCHEMA_FILE
 DOC_FILE = DF_DOC_FILE
@@ -176,7 +175,6 @@ def _scan_comment(target_dir):
 
             # split into macro/test blocks
             # using a simple rule, need to be enhanced
-            # r = re.findall('((?:/\*.*?\*/)*?.*?(?:macro|test|materialization) .*?end(?:macro|test|materialization))', sql, re.DOTALL)
             r = re.findall('((?:/\*.*?\*/)*.+?(?:macro|test|materialization) .*?end(?:macro|test|materialization))', sql, re.DOTALL)
             if len(r) == 0:
             # if r is None: # this is model file
@@ -316,8 +314,11 @@ def _write_property_yml(resource_dir, dbt_blocks, keyword="models"):
         print(f"wrote file {property_file}")
     else:
         # seperate mode
+        prefix = ""
+        if ARGS.prefix:
+            prefix = ARGS.prefix
         for item in dbt_blocks:
-            property_file = os.path.join(resource_dir, item["name"] + ".yml")
+            property_file = os.path.join(resource_dir, prefix + item["name"] + ".yml")
             with open(property_file, "w") as f:
                 f.write(DBTDOC_HEADER)
                 f.write(f"version: 2\n{keyword}:\n")
@@ -353,8 +354,11 @@ def _write_doc_md(resource_dir, doc_blocks, keyword):
         print(f"wrote file {doc_file}")
     else:
         # separate mode
+        prefix = ""
+        if ARGS.prefix:
+            prefix = ARGS.prefix
         for key in doc_blocks:
-            doc_file = os.path.join(resource_dir, key + ".md")
+            doc_file = os.path.join(resource_dir, prefix + key + ".md")
             with open(doc_file, "w") as f:
                 f.write(DBTDOC_HEADER)
                 f.write("{%% docs %s %%}\n" % key)
@@ -368,7 +372,7 @@ def read_conf(folder):
     """
     LOGGER.debug(f"read config file in {folder}")
 
-    global SCHEMA_FILE, DOC_FILE, QUOTE_STRING
+    global SCHEMA_FILE, DOC_FILE, QUOTE_STRING, PREFIX
     # try to get config file in current folder
     # folder = os.path.abspath(os.getcwd())
     config_file = folder + "/" + ".dbtdoc"
@@ -397,6 +401,7 @@ def read_conf(folder):
         yaml.add_representer(quoted, _represent_quoted)
     else:
         yaml.add_representer(quoted, _represent_str)
+
 
     # debug
     # print(f"SCHEMA_FILE={SCHEMA_FILE}")
@@ -479,6 +484,11 @@ def main():
         "-o","--only",
         action="store_true",
         help="process only target folder only"
+    )
+    parser.add_argument(
+        "-p","--prefix",
+        type=str,
+        help="set prefix for output files, used in combination with -S"
     )
     parser.add_argument(
         "-s","--schema",
