@@ -1,5 +1,6 @@
 # dbtdoc
 Create dbt document from SQL files
+![Downloads](https://static.pepy.tech/badge/dbtdoc)
 
 ## Install
 ```
