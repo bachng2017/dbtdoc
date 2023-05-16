@@ -36,6 +36,7 @@ handler_format = Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s
 stream_handler.setFormatter(handler_format)
 LOGGER.addHandler(stream_handler)
 
+SINGLE_FILE=''
 
 class Dumper(yaml.Dumper):
     """ A workaround to indent list more friendly
@@ -68,6 +69,14 @@ yaml.add_representer(str, _represent_str)
 def _get_dirs(dbt_dir):
     """ Return the value of `model-paths` and `macro-path`from dbt_project.yml
     """
+    global SINGLE_FILE
+
+    if os.path.isfile(dbt_dir):
+        LOGGER.warning(f"{dbt_dir} is a file")
+        SINGLE_FILE = os.path.normpath(dbt_dir)
+        dirname, _ = os.path.split(dbt_dir)
+        return [dirname]
+
     dbt_project_file = os.path.join(dbt_dir, "dbt_project.yml")
     if not os.path.isfile(dbt_project_file):
         LOGGER.warning(f"dbt_project.yml not found in {dbt_dir}")
@@ -93,37 +102,6 @@ def _get_dirs(dbt_dir):
         exit(1)
 
     return result
-
-
-def _read_blocks(sql_file):
-    """ Extract doc, dbt block from comments
-        doc block: everything from the beginning to dbt block
-        dbt block: evertyhing inside ```dbt block
-        everything after the dbt block is ignored by dbtdocstr
-    """
-    with open(sql_file, "r") as f:
-        sql = f.read()
-    doc_start = sql.find("/*")
-    doc_end = sql.find("*/")
-    doc = sql[doc_start + 2:doc_end] if doc_start > -1 else ""
-
-    dbt = {}
-    if doc:
-        dbt_start = doc.find(DBT_BLOCK_START_KEY)
-        dbt_end = doc.find("```", dbt_start + len(DBT_BLOCK_START_KEY))
-
-        if dbt_start > -1:
-            dbt_block = doc[dbt_start + len(DBT_BLOCK_START_KEY):dbt_end]
-            try:
-                dbt = yaml.load(dbt_block, Loader=yaml.FullLoader)
-                dbt = yaml.safe_load(dbt_block)
-            except Exception as e:
-                LOGGER.error(f"invalid dbt block in {sql_file}")
-                LOGGER.debug(dbt_block)
-
-        doc = doc[0:dbt_start].strip()
-
-    return doc, dbt
 
 
 def _quote_item(d):
@@ -170,6 +148,13 @@ def _scan_comment(target_dir):
                 continue
 
             sql_file = os.path.join(cdir, fname)
+
+            # ignore if SINGLE_FILE is a valid path and not equal to sql_file
+            if SINGLE_FILE != '' and SINGLE_FILE != sql_file:
+                LOGGER.info(f"Skipping file {sql_file} because it is not {SINGLE_FILE}")
+                continue
+
+
             with open(sql_file, 'r') as f:
                 sql = f.read()
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.7
+- process correctly when a single-file is specified
+
 ## 0.1.6
 - add -p/--prefix option to add a prefix for output files
 
