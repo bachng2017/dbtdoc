@@ -59,7 +59,7 @@ dbtdoc [-h] [-v] [-c] [-b] [-d DOC] [-u] [-o] [-p PREFIX] [-r] [-s SCHEMA] [-S] 
 ```
 
 By default `dbtdoc` scans the default DBT project directory (consulting the `DBT_PROJECT_DIR` environment variable if set or the current directory if the environment variable is unset) and all of its sub-folders for sql files, creates 2 file `dbt_schema.yml` and `docs.md` for each folder (the names of the file could be changed by .dbtdoc)
-If `dbtdoc` finds a `dbt_project.yml` file in the target folder, it will only scan the folders defined by `model-paths` and `macro-paths` in that configuration file.
+If `dbtdoc` finds a `dbt_project.yml` file in the target folder, it will only scan the folders defined by `model-paths`, `macro-paths`, and `test-paths` in that configuration file.
 
 Parameter `-o` can be used to limit `dbtdoc` to only process the root folder and ignore its sub-folders.
 
