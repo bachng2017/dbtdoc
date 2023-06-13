@@ -75,7 +75,7 @@ yaml.add_representer(str, _represent_str)
 
 
 def _get_dirs(dbt_dir):
-    """Return the value of `model-paths` and `macro-path`from dbt_project.yml"""
+    """Return directories which shall be searched for sql files"""
     global SINGLE_FILE
 
     if os.path.isfile(dbt_dir):
@@ -93,20 +93,17 @@ def _get_dirs(dbt_dir):
         with open(dbt_project_file, "r") as f:
             # config = yaml.safe(f, Loader=yaml.FullLoader)
             config = yaml.safe_load(f)
-            result = []
-
-            if "model-paths" in config:
-                result += config["model-paths"]
-            else:
-                result += ["models"]
-
-            if "macro-paths" in config:
-                result += config["macro-paths"]
-            else:
-                result += ["macros"]
+            subdirs = [
+                config.get(f"{key}-paths", [f"{key}s"])
+                for key in ["model", "macro", "test"]
+            ]
+            result = [
+                os.path.join(dbt_dir, path) for subdir in subdirs for path in subdir
+            ]
     except Exception as e:
+        LOGGER.error(e)
         LOGGER.error(f"invalid project file in {dbt_dir}")
-        exit(1)
+        # exit(1)
 
     return result
 
@@ -530,5 +527,5 @@ def main():
     _run()
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
