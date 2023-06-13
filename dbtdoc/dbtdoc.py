@@ -95,7 +95,9 @@ def _get_dirs(dbt_dir):
                 config.get(f"{key}-paths", [f"{key}s"])
                 for key in ["model", "macro", "test"]
             ]
-            result = [path.join(dbt_dir, path) for subdir in subdirs for path in subdir]
+            result = [
+                path.join(dbt_dir, folder) for subdir in subdirs for folder in subdir
+            ]
     except Exception as e:
         LOGGER.error(e)
         LOGGER.error(f"invalid project file in {dbt_dir}")
@@ -523,5 +525,5 @@ def main():
     _run()
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
