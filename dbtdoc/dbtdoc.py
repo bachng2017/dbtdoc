@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-import argparse, datetime, logging, os, sys, glob
-from collections import defaultdict
+import argparse, datetime, logging, os
 from os import path
 
 from textwrap import indent
-import yaml, re, os.path
-from pathlib import Path
+import yaml, re
 from dbtdoc._version import __version__
 
 LOGGER = logging.getLogger(__name__)
@@ -78,14 +76,14 @@ def _get_dirs(dbt_dir):
     """Return directories which shall be searched for sql files"""
     global SINGLE_FILE
 
-    if os.path.isfile(dbt_dir):
+    if path.isfile(dbt_dir):
         LOGGER.warning(f"{dbt_dir} is a file")
-        SINGLE_FILE = os.path.normpath(dbt_dir)
-        dirname, _ = os.path.split(dbt_dir)
+        SINGLE_FILE = path.normpath(dbt_dir)
+        dirname, _ = path.split(dbt_dir)
         return [dirname]
 
-    dbt_project_file = os.path.join(dbt_dir, "dbt_project.yml")
-    if not os.path.isfile(dbt_project_file):
+    dbt_project_file = path.join(dbt_dir, "dbt_project.yml")
+    if not path.isfile(dbt_project_file):
         LOGGER.warning(f"dbt_project.yml not found in {dbt_dir}")
         return [dbt_dir]
 
@@ -97,9 +95,7 @@ def _get_dirs(dbt_dir):
                 config.get(f"{key}-paths", [f"{key}s"])
                 for key in ["model", "macro", "test"]
             ]
-            result = [
-                os.path.join(dbt_dir, path) for subdir in subdirs for path in subdir
-            ]
+            result = [path.join(dbt_dir, path) for subdir in subdirs for path in subdir]
     except Exception as e:
         LOGGER.error(e)
         LOGGER.error(f"invalid project file in {dbt_dir}")
@@ -134,7 +130,7 @@ def _scan_comment(target_dir):
     A macro file could have multi macro inside
     """
     LOGGER.info(f"Scan folder {target_dir} for macros")
-    if not os.path.isdir(target_dir):
+    if not path.isdir(target_dir):
         LOGGER.warning("%s directory not found" % target_dir)
         return
 
@@ -150,7 +146,7 @@ def _scan_comment(target_dir):
                 LOGGER.info("Skipping non-sql file: " + fname)
                 continue
 
-            sql_file = os.path.join(cdir, fname)
+            sql_file = path.join(cdir, fname)
 
             # ignore if SINGLE_FILE is a valid path and not equal to sql_file
             if SINGLE_FILE != "" and SINGLE_FILE != sql_file:
@@ -300,9 +296,9 @@ def _write_property_yml(resource_dir, dbt_blocks, keyword="models"):
         if ARGS.schema:
             property_file = ARGS.schema
         else:
-            property_file = os.path.join(resource_dir, SCHEMA_FILE)
+            property_file = path.join(resource_dir, SCHEMA_FILE)
         # create backup file if necessary
-        if ARGS.backup and os.path.isfile(property_file):
+        if ARGS.backup and path.isfile(property_file):
             os.rename(
                 property_file,
                 property_file[: len(property_file) - 4]
@@ -329,7 +325,7 @@ def _write_property_yml(resource_dir, dbt_blocks, keyword="models"):
         if ARGS.prefix:
             prefix = ARGS.prefix
         for item in dbt_blocks:
-            property_file = os.path.join(resource_dir, prefix + item["name"] + ".yml")
+            property_file = path.join(resource_dir, prefix + item["name"] + ".yml")
             with open(property_file, "w") as f:
                 f.write(DBTDOC_HEADER)
                 f.write(f"version: 2\n{keyword}:\n")
@@ -355,9 +351,9 @@ def _write_doc_md(resource_dir, doc_blocks, keyword):
         if ARGS.doc:
             doc_file = ARGS.doc
         else:
-            doc_file = os.path.join(resource_dir, DOC_FILE)
+            doc_file = path.join(resource_dir, DOC_FILE)
         # create backup file if necessary
-        if ARGS.backup and os.path.isfile(doc_file):
+        if ARGS.backup and path.isfile(doc_file):
             os.rename(
                 doc_file,
                 doc_file[: len(doc_file) - 3]
@@ -379,7 +375,7 @@ def _write_doc_md(resource_dir, doc_blocks, keyword):
         if ARGS.prefix:
             prefix = ARGS.prefix
         for key in doc_blocks:
-            doc_file = os.path.join(resource_dir, prefix + key + ".md")
+            doc_file = path.join(resource_dir, prefix + key + ".md")
             with open(doc_file, "w") as f:
                 f.write(DBTDOC_HEADER)
                 f.write("{%% docs %s %%}\n" % key)
@@ -394,9 +390,9 @@ def read_conf(folder):
 
     global SCHEMA_FILE, DOC_FILE, QUOTE_STRING, PREFIX
     # try to get config file in current folder
-    # folder = os.path.abspath(os.getcwd())
+    # folder = path.abspath(os.getcwd())
     config_file = folder + "/" + ".dbtdoc"
-    if os.path.exists(config_file):
+    if path.exists(config_file):
         config = {}
         with open(config_file, "r") as f:
             config = yaml.safe_load(f)
@@ -436,7 +432,7 @@ def _clear(target_folder):
         for item in files:
             if not re.match(".*\.(yml|md)$", item):
                 continue
-            file_path = os.path.join(cdir, item)
+            file_path = path.join(cdir, item)
             LOGGER.info(f"check signature for {file_path}")
             with open(file_path, encoding="utf-8") as f:
                 header = f.read(100)
