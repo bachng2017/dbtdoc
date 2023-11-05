@@ -55,19 +55,20 @@ docs:
 ### Usage
 Default syntax is below: 
 ```
-dbtdoc [-h] [-v] [-c] [-b] [-d DOC] [-u] [-o] [-p PREFIX] [-s SCHEMA] [-S] [-D DEBUG] [-T TARGET] dbt_dir
+dbtdoc [-h] [-v] [-c] [-b] [-d DOC] [-u] [-o] [-p PREFIX] [-r] [-s SCHEMA] [-S] [-D DEBUG] [-T TARGET]
 ```
 
-By default `dbtdoc` will scan the `dbt_dir` and all of its sub-folder for sql file, creates 2 file `dbt_schema.yml` and `docs.md` for each folder (the names of the file could be changed by .dbtdoc)
-In case `dbtdoc` found a `dbt_project.yml` in the target folder, it will only scan the folders defined by `models-path` and `macros-path` from the file
+By default `dbtdoc` scans the default DBT project directory (consulting the `DBT_PROJECT_DIR` environment variable if set or the current directory if the environment variable is unset) and all of its sub-folders for sql files, creates 2 file `dbt_schema.yml` and `docs.md` for each folder (the names of the file could be changed by .dbtdoc)
+If `dbtdoc` finds a `dbt_project.yml` file in the target folder, it will only scan the folders defined by `model-paths`, `macro-paths`, and `test-paths` in that configuration file.
 
-Paramaeter `-o` is used to limit `dbtdoc` only process on the target `dbt_dir` only but ignore its sub-folder.
+Parameter `-o` can be used to limit `dbtdoc` to only process the root folder and ignore its sub-folders.
 
 Note: when error happens, use the command with `-D DEBUG` for more details about the errors.
 
 
 ## Configuration
-Configuration file `.dbtdoc` is searched in current folder. A typical configuration file looks like this:
+
+A configuration file `.dbtdoc` is searched in the current folder. A typical configuration file looks like this:
 ```.dbtdoc
 schema_file: "dbt_schema.yml"
 doc_file: "docs.md"
@@ -82,4 +83,4 @@ QUOTE_STRING = False
 ```
 
 ## Other
-This project is inspired by this: https://github.com/anelendata/dbt_docstring
+This project was inspired by [dbt_docstring](https://github.com/anelendata/dbt_docstring).
